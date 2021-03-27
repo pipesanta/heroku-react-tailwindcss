@@ -7,7 +7,7 @@ import IconButton from "@material-ui/core/IconButton";
 import SearchIcon from "@material-ui/icons/Search";
 import Pagination from "@material-ui/lab/Pagination";
 
-import { useHistory } from 'react-router-dom';
+import { useHistory } from "react-router-dom";
 
 // HOOKS
 import { useObservable } from "rxjs-hooks";
@@ -17,32 +17,43 @@ import SearchItemDetail from "./list-item-card";
 
 // SERVICES
 import APIRest from "../../../Services/apiRest";
-import { BehaviorSubject, defer } from "rxjs";
+import { BehaviorSubject, combineLatest, defer } from "rxjs";
 import { filter, map, mergeMap, tap } from "rxjs/operators";
 
 const onSearch$ = new BehaviorSubject("");
+const paginatorChanges$ = new BehaviorSubject(1);
 
 const SearchList = () => {
   const [searchValue, setSearchValue] = useState("");
   const [ApiService] = useState(APIRest());
+  const [pageCount, setPageCount] = useState(0);
   const history = useHistory();
 
   const itemListResult = useObservable(() =>
-    onSearch$.pipe(
-      filter((text) => text),
-      tap((text) => console.log("onSearch$..", text)),
-      mergeMap((value) =>
+    combineLatest([onSearch$, paginatorChanges$]).pipe(
+      tap((q) => console.log(q)),
+      filter(([text]) => text),
+      mergeMap(([value, page]) =>
         defer(() =>
           ApiService.get("/sites/MCO/search", {
             q: value,
-            offset: 0,
+            offset: (page - 1) * 50,
             limit: 50,
+          })
+        ).pipe(
+          tap((r) => {
+            if ( (((r||{}).data||{}).results||[]).length === 50) {
+              if(page >= pageCount){
+                setPageCount(page+1)
+              }              
+            }
           })
         )
       ),
       map((response) => response.data),
       filter((r) => r.results),
       map((response) => response.results),
+
       tap((text) => console.log("onSearch$ --- RESULT", text))
     )
   );
@@ -57,7 +68,11 @@ const SearchList = () => {
   }
 
   function handleViewDetailClick(item) {
-    history.push( `/main/search/detail/${item.id}`);
+    history.push(`/main/search/detail/${item.id}`);
+  }
+
+  function handlePAginatorChanges(event, page) {
+    paginatorChanges$.next(page);
   }
 
   return (
@@ -101,19 +116,27 @@ const SearchList = () => {
       {/* RESULT LIST HERE */}
       <div className="w-full flex flex-wrap p-4">
         {(itemListResult || []).map((i) => (
-          <div
-            key={i.id}
-            className="w-full p-3 sm:w-1/2 lg:w-1/4"
-          >
-            <SearchItemDetail item={i} onViewDetailsClick={handleViewDetailClick.bind(this, i)} />
+          <div key={i.id} className="w-full p-3 sm:w-1/2 lg:w-1/4">
+            <SearchItemDetail
+              item={i}
+              onViewDetailsClick={handleViewDetailClick.bind(this, i)}
+            />
           </div>
         ))}
       </div>
 
       {/* PAGINATOR  */}
-      <div>
-        <Pagination count={10} variant="outlined" shape="rounded" />
-      </div>
+      {pageCount !== 0 && (
+        <div className="flex justify-center">
+          <Pagination
+            onChange={handlePAginatorChanges}
+            count={pageCount}
+            size="large"
+            variant="outlined"
+            shape="rounded"
+          />
+        </div>
+      )}
     </div>
   );
 };
