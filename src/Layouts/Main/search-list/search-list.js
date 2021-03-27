@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 // MATERIAL COMPONENTS
 import TextField from "@material-ui/core/TextField";
@@ -6,6 +6,8 @@ import FormControl from "@material-ui/core/FormControl";
 import IconButton from "@material-ui/core/IconButton";
 import SearchIcon from "@material-ui/icons/Search";
 import Pagination from "@material-ui/lab/Pagination";
+
+import { useHistory } from 'react-router-dom';
 
 // HOOKS
 import { useObservable } from "rxjs-hooks";
@@ -23,10 +25,8 @@ const onSearch$ = new BehaviorSubject("");
 const SearchList = () => {
   const [searchValue, setSearchValue] = useState("");
   const [ApiService] = useState(APIRest());
+  const history = useHistory();
 
-  /**
-   * @type [any]
-   */
   const itemListResult = useObservable(() =>
     onSearch$.pipe(
       filter((text) => text),
@@ -53,12 +53,11 @@ const SearchList = () => {
   }
 
   function onSearchBtnClick() {
-    console.log("-------", searchValue);
     onSearch$.next(searchValue);
   }
 
-  function handleViewDetailClick() {
-    
+  function handleViewDetailClick(item) {
+    history.push( `/main/search/detail/${item.id}`);
   }
 
   return (
@@ -106,7 +105,7 @@ const SearchList = () => {
             key={i.id}
             className="w-full p-3 sm:w-1/2 lg:w-1/4"
           >
-            <SearchItemDetail item={i} onViewDetailsClick={handleViewDetailClick} />
+            <SearchItemDetail item={i} onViewDetailsClick={handleViewDetailClick.bind(this, i)} />
           </div>
         ))}
       </div>

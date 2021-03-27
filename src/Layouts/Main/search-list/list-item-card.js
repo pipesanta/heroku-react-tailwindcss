@@ -49,7 +49,7 @@ const SearchItemDetail = (props) => {
 
         </CardContent>
         <CardActions>
-          <Button size="small" onClick={onViewDetailsClick()} >Ver Detalles</Button>
+          <Button size="small" onClick={onViewDetailsClick} >Ver Detalles</Button>
         </CardActions>
       </Card>
     </div>
